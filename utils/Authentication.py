@@ -33,7 +33,9 @@ def check_password(user_data: Login, db: Session) -> bool:
     user_account = account_crud.get_by_username(db=db, username=user_data.username)
     if user_account:
         hashed = user_account.credential[0].password_hash
-        is_valid = bcrypt.checkpw(user_data.password.encode(), hashed.encode())
+        if isinstance(hashed, str):
+            hashed = hashed.encode()
+        is_valid = bcrypt.checkpw(user_data.password.encode(), hashed)
         if is_valid:
             return True
         else:
