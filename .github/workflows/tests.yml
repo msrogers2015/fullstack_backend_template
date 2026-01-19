@@ -21,5 +21,17 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+      - name: Set environment variables
+        run: |
+          echo "JWT_SECRET_KEY=test-secret-key" >> $GITHUB_ENV
+          echo "JWT_ALGORITHM=HS256" >> $GITHUB_ENV
+          echo "JWT_TOKEN_LIFETIME=30" >> $GITHUB_ENV
+          echo "DB_NAME=test" >> $GITHUB_ENV
+          echo "DB_USER=test" >> $GITHUB_ENV
+          echo "DB_PASSWORD=test" >> $GITHUB_ENV
+          echo "DB_HOST=localhost" >> $GITHUB_ENV
+          echo "DB_PORT=5432" >> $GITHUB_ENV
+          echo "DB_SCHEMA=public" >> $GITHUB_ENV
+
       - name: Run tests
         run: pytest
