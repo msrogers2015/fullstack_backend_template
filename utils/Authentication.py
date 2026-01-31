@@ -51,6 +51,7 @@ def create_jwt_token(account: Account) -> str:
         "email": account.email,
         "last_login": account.last_login,
         "token_expires": expires.timestamp(),
+        "full_name": account.full_name,
     }
 
     token = jwt.encode(payload, JWT_SECRET_KEY, algorithm=JWT_ALGORITHM)
@@ -59,8 +60,8 @@ def create_jwt_token(account: Account) -> str:
 
 def check_jwt_token(token: str) -> dict:
     try:
-        payload = jwt.decode(token, JWT_SECRET_KEY, JWT_ALGORITHM)
-        if payload["account_id"] is None:
+        payload = jwt.decode(token, JWT_SECRET_KEY, algorithms=[JWT_ALGORITHM])
+        if not payload.get("account_id"):
             raise HTTPException(status_code=401, detail="Invalid token.")
         return payload
     except JWTError:
