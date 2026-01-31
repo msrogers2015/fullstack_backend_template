@@ -19,7 +19,8 @@ DB_SCHEMA = os.getenv("DB_SCHEMA")
 # JWT Variables
 JWT_TOKEN_LIFETIME = int(os.getenv("JWT_TOKEN_LIFETIME"))
 JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY")
-JWT_ALGORITHM = os.getenv("JWT_ALGORITHM")
+JWT_ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
+
 
 # Middleware variables
 CORS_ORIGINS = os.getenv("CORS_ORIGIN").split(",") if os.getenv("CORS_ORIGIN") else []

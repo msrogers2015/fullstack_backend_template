@@ -4,10 +4,14 @@ from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy.orm import Session
 from configs.database import get_db
 from schemas.Authentication import Login
-from utils.Authentication import check_password, create_jwt_token, check_jwt_token
+from utils.Authentication import (
+    check_password,
+    create_jwt_token,
+    check_jwt_token,
+)
 from custom_cruds.Account import AccountCrud
 
-auth = APIRouter()
+auth = APIRouter(prefix="/auth", tags=["auth"])
 
 
 account_crud = AccountCrud()
@@ -26,6 +30,7 @@ async def login(user_data: Login, db: Session = Depends(get_db)):
 async def verify_token(token: str):
     try:
         account = check_jwt_token(token=token)
+        print(f"{account=}")
         if account:
             print("Token verified")
         else:

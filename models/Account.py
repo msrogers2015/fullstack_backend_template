@@ -17,5 +17,6 @@ class Account(BaseModel):
     )
     last_login = Column(DateTime(timezone=False), nullable=True)
     is_active = Column(Boolean, default=True, nullable=False)
+    full_name = Column(String, nullable=True)
 
     credential = relationship("Credential", back_populates="account")
