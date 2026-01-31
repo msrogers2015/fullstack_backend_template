@@ -7,9 +7,9 @@ from schemas.Authentication import Login
 from utils.Authentication import (
     check_password,
     create_jwt_token,
-    check_current_account,
+    check_jwt_token,
 )
-from custom_cruds.Account import AccountCrud, Account
+from custom_cruds.Account import AccountCrud
 
 auth = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -26,6 +26,14 @@ async def login(user_data: Login, db: Session = Depends(get_db)):
     return {"token": token, "token_type": "bearer"}
 
 
-@auth.get("/verify")
-async def verify_token(account: Account = Depends(check_current_account)):
-    return {"status": "valid"}
+@auth.post("/verify")
+async def verify_token(token: str):
+    try:
+        account = check_jwt_token(token=token)
+        print(f"{account=}")
+        if account:
+            print("Token verified")
+        else:
+            raise HTTPException(status_code=401, detail="Invalid token.")
+    except Exception:
+        raise HTTPException(status_code=401, detail="Unable to validate token.")
