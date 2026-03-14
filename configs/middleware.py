@@ -9,6 +9,7 @@ def cors_setup(app):
         CORSMiddleware,
         allow_origins=CORS_ORIGINS,
         allow_credentials=True,
+        # TODO: Restrict allowed_method and allow_headers before shipping to production.
         allow_methods=["*"],
         allow_headers=["*"],
     )
