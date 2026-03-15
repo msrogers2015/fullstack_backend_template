@@ -71,5 +71,8 @@ jobs:
           echo "DB_PORT=5432" >> $GITHUB_ENV
           echo "DB_SCHEMA=tests" >> $GITHUB_ENV
 
+      - name: Check migrations
+        run: alembic upgrade head --sql
+
       - name: Run tests
         run: pytest
