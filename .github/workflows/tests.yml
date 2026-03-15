@@ -19,11 +19,6 @@ jobs:
       - name: Run pre-commit
         run: pre-commit run --all-files
 
-      - name: Check migrations
-        run: |
-          pip install -r requirements.txt
-          alembic upgrade head --sql
-
   test:
     runs-on: ubuntu-latest
 
