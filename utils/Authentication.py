@@ -5,7 +5,7 @@ from fastapi import HTTPException
 from fastapi.params import Depends
 from fastapi.security import OAuth2PasswordBearer
 from custom_cruds import account_crud
-from models.Account import Account
+from models import Account
 from sqlalchemy.orm import Session
 import jwt
 from jwt.exceptions import InvalidTokenError
