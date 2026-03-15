@@ -1,9 +1,9 @@
 # models/Account.py
 
-from sqlalchemy import Column, BigInteger, String, DateTime, Boolean
-from sqlalchemy.orm import relationship
+from sqlalchemy import Column, BigInteger, String, DateTime, Boolean, ForeignKey
 from .BaseModel import BaseModel
-from datetime import datetime
+from datetime import datetime, timezone
+from sqlalchemy.orm import relationship
 
 
 class Account(BaseModel):
@@ -13,9 +13,16 @@ class Account(BaseModel):
     username = Column(String(20), unique=True, nullable=False)
     email = Column(String(100), unique=True, nullable=False)
     created_at = Column(
-        DateTime(timezone=False), nullable=False, default=datetime.now()
+        DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.now(timezone.utc),
     )
-    last_login = Column(DateTime(timezone=False), nullable=True)
+    role_id = Column(
+        BigInteger, ForeignKey("role.id", ondelete="RESTRICT"), nullable=True
+    )
+    last_login = Column(DateTime(timezone=True), nullable=True)
     is_active = Column(Boolean, default=True, nullable=False)
 
-    credential = relationship("Credential", back_populates="account")
+    credential = relationship("Credential", back_populates="account", uselist=False)
+    user_profile = relationship("UserProfile", back_populates="account", uselist=False)
+    role = relationship("Role", back_populates="accounts")
