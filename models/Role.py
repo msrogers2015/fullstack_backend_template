@@ -14,4 +14,4 @@ class Role(BaseModel):
     access_level = Column(Integer, nullable=False)
     description = Column(String, nullable=True)
 
-    accounts = relationship("Account", back_populates="role")
+    accounts = relationship("Account", back_populates="role", passive_deletes=True)

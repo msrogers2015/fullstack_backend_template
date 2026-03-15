@@ -10,7 +10,7 @@ match ENV:
     case "production":
         load_dotenv(".env.production")
     case _ if ENV.startswith("test"):
-        load_dotenv(".env.test")
+        load_dotenv(".env.tests")
 
 # Database variables
 DB_NAME = os.getenv("DB_NAME")
@@ -19,7 +19,6 @@ DB_PASSWORD = os.getenv("DB_PASSWORD", "")
 DB_HOST = os.getenv("DB_HOST")
 DB_PORT = os.getenv("DB_PORT")
 DB_SCHEMA = os.getenv("DB_SCHEMA")
-print(f"DB_SCHEMA: {DB_SCHEMA}")
 # JWT Variables
 JWT_TOKEN_LIFETIME = int(os.getenv("JWT_TOKEN_LIFETIME", 60))
 JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY")

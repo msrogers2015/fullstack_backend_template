@@ -1,0 +1,5 @@
+id,username,email,role_id,is_active
+1,admin_user,admin@example.com,1,true
+2,staff_user,staff@example.com,2,true
+3,viewer_user,viewer@example.com,3,true
+4,inactive_user,inactive@example.com,2,false

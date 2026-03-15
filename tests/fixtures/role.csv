@@ -1,0 +1,4 @@
+id,name,access_level,description
+1,admin,3,Full system access
+2,staff,2,Standard operational access
+3,viewer,1,Read only access

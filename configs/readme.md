@@ -22,11 +22,11 @@ The active environment is controlled by the `ENV` variable. A corresponding `.en
 file must be present at the project root. Use the `.env.example` as a base for all
 required env files.
 
-| `ENV` Value | File Loaded |
-|---|---|
+| `ENV` Value | File Loaded        |
+|---|--------------------|
 | `development` (default) | `.env.development` |
-| `production` | `.env.production` |
-| `test*` | `.env.test` |
+| `production` | `.env.production`  |
+| `test*` | `.env.tests`       |
 
 
 ---

@@ -47,9 +47,8 @@ def create_jwt_token(account: Account) -> str:
         "username": account.username,
         "email": account.email,
         "last_login": account.last_login.isoformat() if account.last_login else None,
-        "token_expires": expires.timestamp(),
+        "exp": expires,
     }
-
     token = jwt.encode(payload, JWT_SECRET_KEY, algorithm=JWT_ALGORITHM)
     return token
 

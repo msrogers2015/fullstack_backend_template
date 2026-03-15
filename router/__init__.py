@@ -6,4 +6,5 @@ ROUTERS = [
 
 __all__ = [
     "auth_router",
+    "ROUTERS",
 ]
