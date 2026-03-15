@@ -1,129 +1,87 @@
-import pytest
-from fastapi.testclient import TestClient
-from sqlalchemy.orm import Session
-from sqlalchemy import event
-import bcrypt
-from datetime import datetime
+# tests/test_authentication.py
 
-from configs.database import get_db
-from main import app
-from configs.database_test import engine, SessionLocal
-from models.BaseModel import BaseModel
-from models.Account import Account
-from models.Credential import Credential
 from utils.Authentication import create_jwt_token
-
-# Create tables before tests
-BaseModel.metadata.create_all(bind=engine)
-
-client = TestClient(app)
-
-
-@pytest.fixture
-def db():
-    """Provide a test database session for each test."""
-
-    # Enable foreign keys for SQLite
-    @event.listens_for(engine, "connect")
-    def set_sqlite_pragma(dbapi_conn, connection_record):
-        cursor = dbapi_conn.cursor()
-        cursor.execute("PRAGMA foreign_keys=ON")
-        cursor.close()
-
-    connection = engine.connect()
-    transaction = connection.begin()
-    session = SessionLocal(bind=connection)
-
-    yield session
-
-    session.close()
-    transaction.rollback()
-    connection.close()
+from models import Account
+from datetime import datetime, timezone, timedelta
+import jwt
+from configs.config import JWT_SECRET_KEY, JWT_ALGORITHM
 
 
-@pytest.fixture(autouse=True)
-def override_get_db(db: Session):
-    """Override the get_db dependency to use test database."""
+class TestLogin:
+    def test_login_success(self, client):
+        """Successful login returns access_token and token_type."""
+        response = client.post(
+            "/auth/login",
+            data={"username": "admin_user", "password": "AdminPassword123!"},
+        )
+        assert response.status_code == 200
+        assert "access_token" in response.json()
+        assert response.json()["token_type"] == "bearer"
 
-    def _get_db():
-        yield db
+    def test_login_wrong_password(self, client):
+        """Wrong password returns 401."""
+        response = client.post(
+            "/auth/login",
+            data={"username": "admin_user", "password": "wrongpassword"},
+        )
+        assert response.status_code == 401
+        assert "Incorrect username or password" in response.json()["detail"]
 
-    app.dependency_overrides[get_db] = _get_db
-    yield
-    app.dependency_overrides.clear()
+    def test_login_nonexistent_user(self, client):
+        """Non-existent username returns 401."""
+        response = client.post(
+            "/auth/login",
+            data={"username": "nobody", "password": "somepassword"},
+        )
+        assert response.status_code == 401
+        assert "Incorrect username or password" in response.json()["detail"]
 
-
-@pytest.fixture
-def test_account(db: Session):
-    """Create a test account with credentials."""
-    # Create account
-    account = Account(
-        id=1,
-        username="testuser",
-        email="test@example.com",
-        created_at=datetime.now(),
-        is_active=True,
-    )
-    db.add(account)
-    db.flush()
-    db.refresh(account)
-
-    # Hash password and create credential
-    password = "testpassword123"
-    hashed = bcrypt.hashpw(password.encode(), bcrypt.gensalt(rounds=12))
-    credential = Credential(
-        id=1, account_id=1, password_hash=hashed, created_at=datetime.now()
-    )
-    db.add(credential)
-    db.commit()
-    return {"account": account, "password": password}
-
-
-def test_login_success(test_account):
-    """Test successful login with correct credentials."""
-    response = client.post(
-        "/auth/login", json={"username": "testuser", "password": "testpassword123"}
-    )
-
-    assert response.status_code == 200
-    assert "token" in response.json()
-    assert response.json()["token_type"] == "bearer"
+    def test_login_returns_valid_jwt(self, client):
+        """Token returned on login is a valid decodable JWT."""
+        response = client.post(
+            "/auth/login",
+            data={"username": "admin_user", "password": "AdminPassword123!"},
+        )
+        token = response.json()["access_token"]
+        payload = jwt.decode(token, JWT_SECRET_KEY, algorithms=[JWT_ALGORITHM])
+        assert payload["username"] == "admin_user"
+        assert payload["account_id"] is not None
 
 
-def test_login_invalid_password(test_account):
-    """Test login with incorrect password."""
-    response = client.post(
-        "/auth/login", json={"username": "testuser", "password": "wrongpassword"}
-    )
+class TestVerify:
+    def test_verify_valid_token(self, client, db):
+        """Valid token returns valid: True."""
+        account = db.query(Account).filter(Account.id == 1).first()
+        token = create_jwt_token(account)
+        response = client.post(
+            "/auth/verify",
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert response.status_code == 200
+        assert response.json()["valid"] is True
 
-    assert response.status_code == 400
-    assert "Incorrect username or password" in response.json()["detail"]
+    def test_verify_invalid_token(self, client):
+        """Malformed token returns 401."""
+        response = client.post(
+            "/auth/verify",
+            headers={"Authorization": "Bearer this.is.not.a.token"},
+        )
+        assert response.status_code == 401
 
-
-def test_login_nonexistent_user():
-    """Test login with non-existent username."""
-    response = client.post(
-        "/auth/login", json={"username": "nonexistentuser", "password": "anypassword"}
-    )
-
-    assert response.status_code == 400
-    assert "Incorrect username or password" in response.json()["detail"]
-
-
-def test_verify_token_valid(test_account):
-    """Test token verification with valid token."""
-    # Create a token
-    token = create_jwt_token(test_account["account"])
-
-    response = client.post(
-        f"/auth/verify?token={token}",
-    )
-    assert response.status_code == 200
-
-
-def test_verify_token_invalid(test_account):
-    """Test token verification with valid token."""
-    response = client.post(
-        "/auth/verify?token=random_string_for_token",
-    )
-    assert response.status_code == 401
+    def test_verify_expired_token(self, client, db):
+        """Expired token returns 401."""
+        account = db.query(Account).filter(Account.id == 1).first()
+        expires = datetime.now(timezone.utc) - timedelta(minutes=1)
+        payload = {
+            "account_id": account.id,
+            "username": account.username,
+            "email": account.email,
+            "last_login": None,
+            "exp": expires,
+        }
+        expired_token = jwt.encode(payload, JWT_SECRET_KEY, algorithm=JWT_ALGORITHM)
+        response = client.post(
+            "/auth/verify",
+            headers={"Authorization": f"Bearer {expired_token}"},
+        )
+        assert response.status_code == 401

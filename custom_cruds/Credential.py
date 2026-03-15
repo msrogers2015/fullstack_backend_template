@@ -1,7 +1,7 @@
 # custom_crud/Credential.py
 
 from configs.crud import BaseCrud
-from models.Credential import Credential
+from models import Credential
 
 
 class CredentialCrud(BaseCrud):

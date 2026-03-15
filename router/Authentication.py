@@ -1,39 +1,36 @@
 # router/Authentication.py
 
 from fastapi import APIRouter, HTTPException, Depends
+from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from configs.database import get_db
-from schemas.Authentication import Login
 from utils.Authentication import (
     check_password,
     create_jwt_token,
     check_jwt_token,
+    oauth2_scheme,
 )
-from custom_cruds.Account import AccountCrud
+from custom_cruds import account_crud
 
-auth = APIRouter(prefix="/auth", tags=["auth"])
-
-
-account_crud = AccountCrud()
+auth_router = APIRouter(prefix="/auth", tags=["auth"])
 
 
-@auth.post("/login")
-async def login(user_data: Login, db: Session = Depends(get_db)):
-    if not check_password(user_data=user_data, db=db):
-        raise HTTPException(status_code=400, detail="Incorrect username or password")
+@auth_router.post("/login")
+async def login(
+    user_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)
+):
+    if not check_password(
+        username=user_data.username, password=user_data.password, db=db
+    ):
+        raise HTTPException(status_code=401, detail="Incorrect username or password")
     user_account = account_crud.get_by_username(db=db, username=user_data.username)
     token = create_jwt_token(user_account)
-    return {"token": token, "token_type": "bearer"}
+    return {"access_token": token, "token_type": "bearer"}
 
 
-@auth.post("/verify")
-async def verify_token(token: str):
-    try:
-        account = check_jwt_token(token=token)
-        print(f"{account=}")
-        if account:
-            print("Token verified")
-        else:
-            raise HTTPException(status_code=401, detail="Invalid token.")
-    except Exception:
-        raise HTTPException(status_code=401, detail="Unable to validate token.")
+@auth_router.post("/verify")
+async def verify_token(token: str = Depends(oauth2_scheme)):
+    account = check_jwt_token(token=token)
+    if not account:
+        raise HTTPException(status_code=401, detail="Invalid token.")
+    return {"valid": True}

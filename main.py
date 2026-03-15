@@ -2,13 +2,13 @@
 
 from fastapi import FastAPI
 from configs.middleware import cors_setup
-from router.Authentication import auth
-from router.User import user
+from router import ROUTERS
 
 app = FastAPI()
 cors_setup(app)
-app.include_router(auth)
-app.include_router(user)
+
+for routers in ROUTERS:
+    app.include_router(routers)
 
 
 @app.get("/health")

@@ -4,15 +4,43 @@ on:
   pull_request:
 
 jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
+
+      - name: Install pre-commit
+        run: pip install pre-commit
+
+      - name: Run pre-commit
+        run: pre-commit run --all-files
+
   test:
     runs-on: ubuntu-latest
 
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: test_db
+          POSTGRES_USER: test_user
+          POSTGRES_PASSWORD: test_password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v4
         with:
           python-version: '3.12'
 
@@ -21,17 +49,25 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+      - name: Create test schema
+        run: |
+          PGPASSWORD=test_password psql -h localhost -U test_user -d test_db -c "CREATE SCHEMA IF NOT EXISTS tests;"
+
       - name: Set environment variables
         run: |
+          echo "ENV=tests" >> $GITHUB_ENV
           echo "JWT_SECRET_KEY=test-secret-key" >> $GITHUB_ENV
           echo "JWT_ALGORITHM=HS256" >> $GITHUB_ENV
           echo "JWT_TOKEN_LIFETIME=30" >> $GITHUB_ENV
-          echo "DB_NAME=test" >> $GITHUB_ENV
-          echo "DB_USER=test" >> $GITHUB_ENV
-          echo "DB_PASSWORD=test" >> $GITHUB_ENV
+          echo "DB_NAME=test_db" >> $GITHUB_ENV
+          echo "DB_USER=test_user" >> $GITHUB_ENV
+          echo "DB_PASSWORD=test_password" >> $GITHUB_ENV
           echo "DB_HOST=localhost" >> $GITHUB_ENV
           echo "DB_PORT=5432" >> $GITHUB_ENV
-          echo "DB_SCHEMA=public" >> $GITHUB_ENV
+          echo "DB_SCHEMA=tests" >> $GITHUB_ENV
+
+      - name: Check migrations
+        run: alembic upgrade head --sql
 
       - name: Run tests
         run: pytest
